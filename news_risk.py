@@ -19,7 +19,7 @@ class ConnRisk():
 
         #sql_saved = "select OldID, Content from tFastNew_wallstreet_stock_negative"
         #sql_saved = "select SelfID, content from tRiskNews_FinChina"
-        sql_saved = "select appItemId, detail from tFastNews_jrj"
+        sql_saved = "select id, content from news_conn_risk"
         saved_files = db.query(sql_saved)
 
         db.close()
@@ -35,16 +35,6 @@ class ConnRisk():
         print('新闻数量：', len(contents))
         return contents
 
-    # def get_json(self, csv_contents):
-    #     contents = []
-    #     for row in csv_contents:
-    #         content = {}
-    #         content['id'] = int(row[1])
-    #         content['content'] = row[6].strip('\t\n')
-    #         contents.append(content)
-    #     print('公告数量：', len(contents))
-    #     return contents
-
     def get_riskdict(self, csv_risk):
         risk_dict = {}
         for row in csv_risk:
@@ -58,8 +48,13 @@ class ConnRisk():
     def get_risklabel(self, contents, risk_dict):  #传入数据(目前为批量，后来要修改为单个)
         double_id = []
         texts = []
+        count1 = 0
         #for i in range(len(contents)):
-        for i in range(1):
+        for i in range(10):
+            count1 += 1
+            if count1 %10000 == 0:
+                print('已处理数据数量：', count1)
+
             text = contents[i]   #取出第i篇新闻；是一个字典，存储的有id，content, stoc_id, counts
             content = text['content']
             for key, value in risk_dict.items():#遍历风险类型
@@ -71,9 +66,12 @@ class ConnRisk():
                 #right_labels中元素是等同的，只有有一个满足即可
                 for i in range(len(right_labels)):
                     right_label = str(right_labels[i]).split(',')  #将要同时含有几个关键字的那些关键字分割开
+                    print(key, value)
                     count = 0  #看最终是否能同时匹配上那几个关键字
                     for j in range(len(right_label)):
+                        print(j)
                         right_pattern = re.compile('%s' % (right_label[j]))
+                        print(right_label[j])
                         if right_pattern.search(content):
                             count += 1
                     if count == len(right_label):  #只要right_labels中有一个元素满足，就可以中止循环了
@@ -107,29 +105,35 @@ class ConnRisk():
         print("匹配多个风险标签的新闻数量为:", len(double_id), "具体id为:", double_id)
         return texts
 
-    def run(self, contents):
-
-        db = Database()
-        db.connect('news_connect_keywords')
-
-        for i in range(len(contents)):
-            data = contents[i]
-            sql_insert = 'INSERT INTO news_conn_risk(id, content) VALUES (%s, %s)'
-            db.execute(sql_insert, [data['id'], data['content']])
-        db.close()
+    # def run(self, contents):
+    #
+    #     db = Database()
+    #     db.connect('news_connect_keywords')
+    #
+    #     for i in range(len(contents)):
+    #         data = contents[i]
+    #         sql_insert = 'INSERT INTO news_conn_risk(id, content) VALUES (%s, %s)'
+    #         db.execute(sql_insert, [data['id'], data['content']])
+    #     db.close()
 
 
     def run1(self, texts):
 
         db = Database()
         db.connect('news_connect_keywords')
-
+        count2 = 0
         for i in range(len(texts)):
             data = texts[i]
-            sql_update = """update news_conn_risk set risk = "%s" where id = %d""" %(str(data['risk']), int(data['id']))
+            sql_update = """update news_conn_risk set risk = "%s" where id = %s""" %(str(data['risk']), str(data['id']))
             #sql_update = """update announce_conn_risk set risk = "%s" where id = '1204822535'""" % (str(data['risk']))
-            db.execute(sql_update)
-
+            count2 += 1
+            try:
+                db.execute(sql_update)
+            except:
+                print('有误:', data['id'], data['risk'])
+                continue
+            if count2 % 10 == 0:
+                print('已更新数量：', count2)
         db.close()
 
 
@@ -140,12 +144,11 @@ if __name__ == '__main__':
     saved_files = CR.conn_db()
     print(len(saved_files))
     contents = CR.get_json(saved_files)
-    print(contents[0])
-    # CR.run(contents)
-    # risk_dict = CR.get_riskdict(CR.csv_risk)
-    # texts = CR.get_risklabel(contents, risk_dict)
-    # print("匹配上风险的新闻数量为:", len(texts))
-    # print("具体情况为:", texts)
+    risk_dict = CR.get_riskdict(CR.csv_risk)
+    print('接下来匹配风险')
+    texts = CR.get_risklabel(contents, risk_dict)
+    print("匹配上风险的新闻数量为:", len(texts))
+    print("具体情况为:", texts)
     # CR.run1(texts)
     # ret = myEmail.mail('若运行完成')
     # if ret:
