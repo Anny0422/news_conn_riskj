@@ -10,6 +10,11 @@ if __name__ == '__main__':
     print(len(saved_files))
     contents = CR.get_json(saved_files)
     print(contents[0])
+## 关于从一个表中选择指定列插入到另一个表的指定列操作：
+# insert into stock.news_conne_risk1 (oldID, Content) select SinaID, content from stock.tFastNews_Sina;
+
+
+
 2、将从数据库中读到的数据匹配风险，更新到表stock.news_conn_risk中。
 只需：
 if __name__ == '__main__':
@@ -30,3 +35,4 @@ if __name__ == '__main__':
         print("邮件发送成功")
     else:
         print("邮件发送失败")
+
